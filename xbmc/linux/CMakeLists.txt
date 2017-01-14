@@ -41,7 +41,8 @@ if(OMXLIB_FOUND)
 endif()
 
 if(IMX_FOUND)
-  add_subdirectory(imx)
+ list(APPEND SOURCES imx/IMX.cpp imx/GlobalsIMX.cpp)
+ list(APPEND HEADERS imx/IMX.h)
 endif()
 
 core_add_library(linuxsupport)
