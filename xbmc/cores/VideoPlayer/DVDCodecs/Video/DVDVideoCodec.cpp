@@ -23,6 +23,8 @@
 #include "settings/Settings.h"
 #include "settings/lib/Setting.h"
 #include "windowing/WindowingFactory.h"
+#include "utils/SysfsUtils.h"
+#include "utils/StringUtils.h"
 
 bool CDVDVideoCodec::IsSettingVisible(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
 {
@@ -60,6 +62,17 @@ bool CDVDVideoCodec::IsSettingVisible(const std::string &condition, const std::s
   // or fglrx with xvba-driver we show everything
   return true;
 }
+
+
+bool CDVDVideoCodec::IsIntel()
+{
+  // check if we are running on intel hardware
+  std::string gpuvendor;
+  SysfsUtils::GetString("/proc/fb", gpuvendor);
+
+  return StringUtils::EndsWith(gpuvendor, "inteldrmfb");
+}
+
 
 bool CDVDVideoCodec::IsCodecDisabled(const std::map<AVCodecID, std::string> &map, AVCodecID id)
 {

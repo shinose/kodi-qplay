@@ -20,7 +20,6 @@ endif()
 
 if(PKG_CONFIG_FOUND)
   pkg_check_modules(PC_PULSEAUDIO libpulse>=${PulseAudio_FIND_VERSION} QUIET)
-  pkg_check_modules(PC_PULSEAUDIO_MAINLOOP libpulse-mainloop-glib QUIET)
 endif()
 
 find_path(PULSEAUDIO_INCLUDE_DIR NAMES pulse/pulseaudio.h
@@ -28,9 +27,6 @@ find_path(PULSEAUDIO_INCLUDE_DIR NAMES pulse/pulseaudio.h
 
 find_library(PULSEAUDIO_LIBRARY NAMES pulse libpulse
                                 PATHS ${PC_PULSEAUDIO_LIBDIR} ${PC_PULSEAUDIO_LIBRARY_DIRS})
-
-find_library(PULSEAUDIO_MAINLOOP_LIBRARY NAMES pulse-mainloop pulse-mainloop-glib libpulse-mainloop-glib
-                                         PATHS ${PC_PULSEAUDIO_LIBDIR} ${PC_PULSEAUDIO_LIBRARY_DIRS})
 
 if(PC_PULSEAUDIO_VERSION)
   set(PULSEAUDIO_VERSION_STRING ${PC_PULSEAUDIO_VERSION})
@@ -42,27 +38,21 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PulseAudio
-                                  REQUIRED_VARS PULSEAUDIO_LIBRARY PULSEAUDIO_MAINLOOP_LIBRARY PULSEAUDIO_INCLUDE_DIR
-                                  VERSION_VAR PULSEAUDIO_VERSION_STRING)
+                                  REQUIRED_VARS PULSEAUDIO_LIBRARY PULSEAUDIO_INCLUDE_DIR
+				  VERSION_VAR PULSEAUDIO_VERSION_STRING)
 
 if(PULSEAUDIO_FOUND)
   set(PULSEAUDIO_INCLUDE_DIRS ${PULSEAUDIO_INCLUDE_DIR})
   set(PULSEAUDIO_LIBRARIES ${PULSEAUDIO_LIBRARY} ${PULSEAUDIO_MAINLOOP_LIBRARY})
   set(PULSEAUDIO_DEFINITIONS -DHAVE_LIBPULSE=1)
 
-  if(NOT TARGET PulseAudio::PulseAudioMainloop)
-    add_library(PulseAudio::PulseAudioMainloop UNKNOWN IMPORTED)
-    set_target_properties(PulseAudio::PulseAudioMainloop PROPERTIES
-                                                         IMPORTED_LOCATION "${PULSEAUDIO_MAINLOOP_LIBRARY}")
-  endif()
   if(NOT TARGET PulseAudio::PulseAudio)
     add_library(PulseAudio::PulseAudio UNKNOWN IMPORTED)
     set_target_properties(PulseAudio::PulseAudio PROPERTIES
                                                  IMPORTED_LOCATION "${PULSEAUDIO_LIBRARY}"
                                                  INTERFACE_INCLUDE_DIRECTORIES "${PULSEAUDIO_INCLUDE_DIR}"
-                                                 INTERFACE_COMPILE_DEFINITIONS HAVE_LIBPULSE=1
-                                                 INTERFACE_LINK_LIBRARIES PulseAudio::PulseAudioMainloop)
+						 INTERFACE_COMPILE_DEFINITIONS HAVE_LIBPULSE=1)
   endif()
 endif()
 
-mark_as_advanced(PULSEAUDIO_INCLUDE_DIR PULSEAUDIO_LIBRARY PULSEAUDIO_MAINLOOP_LIBRARY)
+mark_as_advanced(PULSEAUDIO_INCLUDE_DIR PULSEAUDIO_LIBRARY)
