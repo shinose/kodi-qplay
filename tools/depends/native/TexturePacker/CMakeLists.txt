@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.7)
 set (CMAKE_SOURCE_DIR ${CMAKE_SOURCE_DIR}/../../../../)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
