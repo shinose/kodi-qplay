@@ -152,6 +152,20 @@ void CUDevProvider::GetDisks(VECSOURCES& disks, bool removable)
       continue;
     }
 
+    // OE: filter out openelec specific mounts
+    if (strstr(mountpoint, "/flash"))
+    {
+      udev_device_unref(device);
+      continue;
+    }
+
+    if (strstr(mountpoint, "/storage"))
+    {
+      udev_device_unref(device);
+      continue;
+    }
+    // OE
+
     // look for devices on the usb bus, or mounted on */media/ (sdcards), or optical devices
     const char *bus = udev_device_get_property_value(device, "ID_BUS");
     const char *optical = udev_device_get_property_value(device, "ID_CDROM"); // matches also DVD, Blu-ray
@@ -207,7 +221,7 @@ bool CUDevProvider::Eject(const std::string& mountpath)
 {
   // just go ahead and try to umount the disk
   // if it does umount, life is good, if not, no loss.
-  std::string cmd = "umount \"" + mountpath + "\"";
+  std::string cmd = "udevil umount \"" + mountpath + "\"";
   int status = system(cmd.c_str());
 
   if (status == 0)

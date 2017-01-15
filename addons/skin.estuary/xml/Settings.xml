@@ -145,6 +145,11 @@
 					<icon>icons/settings/profiles.png</icon>
 				</item>
 				<item>
+					<label>@DISTRONAME@</label>
+					<onclick>RunAddon(service.openelec.settings)</onclick>
+					<icon>icons/settings/openelec.png</icon>
+				</item>
+				<item>
 					<label>$LOCALIZE[14209]</label>
 					<onclick>ActivateWindow(SystemSettings)</onclick>
 					<icon>icons/settings/system.png</icon>

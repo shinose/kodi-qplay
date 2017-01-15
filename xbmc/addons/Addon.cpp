@@ -51,6 +51,10 @@
 #include "freebsd/FreeBSDGNUReplacements.h"
 #endif
 
+#include <iostream>
+#include <dirent.h>
+#include <sys/stat.h>
+
 using XFILE::CDirectory;
 using XFILE::CFile;
 
@@ -344,6 +348,13 @@ AddonVersion CAddon::GetDependencyVersion(const std::string &dependencyID) const
   return AddonVersion("0.0.0");
 }
 
+void CallOEWrapper(const std::string& ID, bool disable)
+{
+  char cmd[255];
+  snprintf(cmd, sizeof(cmd), "/usr/lib/openelec/systemd-addon-wrapper %s %d", ID.c_str(), disable);
+  system(cmd);
+}
+
 void OnEnabled(const std::string& id)
 {
   // If the addon is a special, call enabled handler
@@ -352,6 +363,11 @@ void OnEnabled(const std::string& id)
       CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_ADSPDLL) ||
       CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_PERIPHERALDLL))
     return addon->OnEnabled();
+
+  // OE: systemctl enable & start on addon enable
+  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE))
+    CallOEWrapper(addon->ID(), false);
+  // OE
 
   if (CAddonMgr::GetInstance().ServicesHasStarted())
   {
@@ -377,6 +393,11 @@ void OnDisabled(const std::string& id)
     if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE, false))
       std::static_pointer_cast<CService>(addon)->Stop();
   }
+
+  // OE: systemctl stop & disable on addon disable
+  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE, false))
+    CallOEWrapper(addon->ID(), true);
+  // OE
 
   if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_CONTEXT_ITEM, false))
     CContextMenuManager::GetInstance().Unload(*std::static_pointer_cast<CContextMenuAddon>(addon));
@@ -405,6 +426,15 @@ void OnPreInstall(const AddonPtr& addon)
 void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
 {
   AddonPtr localAddon;
+
+  // OE: systemctl stop & disable / enable & start on addon upgrade
+  if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
+  {
+    CallOEWrapper(addon->ID(), true);
+    CallOEWrapper(addon->ID(), false);
+  }
+  // OE
+
   if (CAddonMgr::GetInstance().ServicesHasStarted())
   {
     if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
@@ -414,12 +444,39 @@ void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
   if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_REPOSITORY))
     CRepositoryUpdater::GetInstance().ScheduleUpdate(); //notify updater there is a new addon or version
 
+  // OE: make binary addons executable, creddits to vpeter4
+  std::string addonDirPath;
+  std::string chmodFilePath;
+  DIR *addonsDir;
+  struct dirent *fileDirent;
+  struct stat fileStat;
+  int statRet;
+
+  addonDirPath = "/storage/.kodi/addons/" + addon->ID() + "/bin/";
+  if ((addonsDir = opendir(addonDirPath.c_str())) != NULL)
+  {
+    while ((fileDirent = readdir(addonsDir)) != NULL)
+    {
+      chmodFilePath = addonDirPath + fileDirent->d_name;
+      statRet = stat(chmodFilePath.c_str(), &fileStat);
+      if (statRet == 0 && (fileStat.st_mode & S_IFMT) != S_IFDIR)
+        chmod(chmodFilePath.c_str(), fileStat.st_mode | S_IXUSR | S_IXGRP | S_IXOTH);
+    }
+    closedir(addonsDir);
+  }
+  // OE
+
   addon->OnPostInstall(update, modal);
 }
 
 void OnPreUnInstall(const AddonPtr& addon)
 {
   AddonPtr localAddon;
+
+  // OE: systemctl stop & disable on addon uninstall
+  if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
+    CallOEWrapper(addon->ID(), true);
+  // OE
 
   if (CAddonMgr::GetInstance().ServicesHasStarted())
   {
